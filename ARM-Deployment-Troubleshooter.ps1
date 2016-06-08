@@ -30,7 +30,7 @@ function logheader ($heading, $filepath)
     Write-Output $('=' * ($heading.length)) | Out-File -FilePath $filepath -Append
 }
 
-#Logon ($AadTenantId)
+Logon ($AadTenantId)
  
 $resourceGroup = Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue
 if ($resourceGroup -eq $null)
