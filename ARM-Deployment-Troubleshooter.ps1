@@ -44,79 +44,71 @@ $deployments = Get-AzureRmResourceGroupDeployment -ResourceGroupName $ResourceGr
 Write-Host -ForegroundColor Green "Found" $deployments.Count "deployments in resource group $resourceGroupName"
 
 $deployments | ft -Property DeploymentName,ProvisioningState,Mode,Timestamp 
-$faileddeployments = $deployments | where {$_.ProvisioningState -ne 'Succeeded'}
+$faileddeployments = $deployments #| where {$_.ProvisioningState -ne 'Succeeded'}
 if ($faileddeployments.Count -ge 1)
 {
     Write-Host -ForegroundColor Green 'Logging failed deploymnets'
     foreach ($deployment in $faileddeployments)
     {
+        #set up a log file
         $name = $deployment.DeploymentName
         $logfile="$ResourceGroupName-$name.log"
         Remove-Item $logfile -Confirm -ErrorAction SilentlyContinue
 
+        #write a header
         logheader "Deployment details for deployment $name" $logfile
 
+        #Template link if available - not available if deployed via portal
         Write-Host -ForegroundColor Green Getting deploymjent informaion for deployment $deployment.DeploymentName
         if ($deployment.TemplateLink -ne $null)
         {
             logheader "Template Link Information" $logfile 
-            $deployment.TemplateLinkString | Out-File -FilePath $logfile -Append
+            $deployment.TemplateLink | ConvertTo-Json | Out-File -FilePath $logfile -Append
         } 
+
+        #Deploymnet parameters
         logheader "Depployment Paramaters" $logfile 
-        $deployment.ParametersString | Out-File -FilePath $logfile -Append
-        if ($deployment.TemplateLink -ne $null)
+        $deployment.Parameters | ConvertTo-Json | Out-File -FilePath $logfile -Append
+        
+        #Deployment out puts if any
+        if ($deployment.Outputs -ne $null)
         {
             logheader "Deployment Outputs" $logfile
             $deployment.OutputsString | Out-File -FilePath $logfile -Append
         } 
+
+        #deployment operations
         $operations = Get-AzureRmResourceGroupDeploymentOperation -DeploymentName $deployment.DeploymentName -ResourceGroupName $ResourceGroupName
         Write-Host -ForegroundColor Green "Getting deploymnet operations for deploymnet" $deployment.DeploymentName
         logheader "Deployment Operations" $logfile 
-        "{0,-40} {1,-60} {2,12}" -f "Resource Name","Resource Type", "Provisioning State" | Out-File -FilePath $logfile -Append
-        foreach ($operation in $operations)
+        $operations | ConvertTo-Json | Out-File -FilePath $logfile -Append
+
+        #All resources in the group
+        Write-Host -ForegroundColor Green "Getting Additional information all resources in $ResourceGroupName"
+        logheader "Resources in group $ResourceGroupName" $logfile
+        $resources = Get-AzureRmResource | where {$_.ResourceGroupName -eq $ResourceGroupName}
+        foreach ($resource in $resources)
         {
-             "{0,-40} {1,-60} {2,12}" -f $operation.Properties.TargetResource.ResourceName,$operation.Properties.TargetResource.ResourceType, $operation.Properties.ProvisioningState | Out-File -FilePath $logfile -Append
-             if ($operation.Properties.ProvisioningState -ne 'Succeeded')
-             {               
-                $operation.Properties.StatusMessage.Error  | Out-File -FilePath $logfile -Append
-             }
+            $resource |Out-File -FilePath $logfile -Append
+            Get-AzureRmResource -ResourceId $resource.ResourceId | convertto-json | Out-File -FilePath $logfile -Append
         }
 
-        $resources = Get-AzureRmResource | where {$_.ResourceGroupName -eq $ResourceGroupName}
+        #Additional information for VMs and Extensions
         Write-Host -ForegroundColor Green "Getting Additional information for any VM resources"
         foreach ($vmop in $operations | where {$_.Properties.TargetResource.ResourceType -eq 'Microsoft.Compute/virtualMachines'})
         {
             Write-Host -ForegroundColor Green "Getting details for vm" $vmstatus.Name 
             $vmstatus = Get-AzureRmVM -Status -ResourceGroupName $ResourceGroupName -Name $vmop.Properties.TargetResource.ResourceName 
             logheader ("VM status for VM" + $vmstatus.Name) $logfile
-            $vmstatus.Statuses | ft -Property Level, Code, DisplayStatus | Out-File -FilePath $logfile -Append
+            $vmstatus.StatusText| Out-File -FilePath $logfile -Append
 
             Write-Host -ForegroundColor Green "Getting VM Agent Status for VM" $vmstatus.Name
             logheader ("VM Agent status for VM" + $vmstatus.Name) $logfile
-            $vmstatus.VMAgent.Statuses | ft -Property Level, Code, DisplayStatus | Out-File -FilePath $logfile -Append
-
-            Write-Host -ForegroundColor Green "Getting Installed Agent Extension Handlers for VM" $vmstatus.Name
-            logheader ("Installed Extension Handlers for VM" + $vmstatus.Name) $logfile
-            $vmstatus.VMAgent.ExtensionHandlers | ft -Property Type, TypeHandlerVersion | Out-File -FilePath $logfile -Append
+            $vmstatus.VMAgentText | Out-File -FilePath $logfile -Append
 
             Write-Host -ForegroundColor Green "Getting Installed Agent Extensions for VM" $vmstatus.Name
             logheader ("Installed Extensions for VM" + $vmstatus.Name) $logfile
-            $vmstatus.Extensions | ft -Property Name, Type, TypeHandlerVersion | Out-File -FilePath $logfile -Append
-
-            foreach ($extension in $vmstatus.Extensions)
-            {
-                Write-Host -ForegroundColor Green Logging Status for extension $extension.Name of type $extension.Type in VM $vmstatus.Name
-                logheader ("Status for extension "+$extension.Name +" of type "+$extension.Type + " in VM"+ $vmstatus.Name)  $logfile
-                $extension.Statuses | ft -Property Level, Code, DisplayStatus, message | Out-File -FilePath $logfile -Append
-
-                Write-Host -ForegroundColor Green Logging Sub-Status for extension $extension.Name of type $extension.Type in VM $vmstatus.Name
-                foreach ($substatus in $extension.Substatuses)
-                {
-                    logheader ("Sub-Status for extension "+$extension.Name +" of type "+$extension.Type + " in VM"+ $vmstatus.Name)  $logfile
-                    $substatus | ft -Property Level, Code, DisplayStatus | Out-File -FilePath $logfile -Append
-                    $substatus.Message | Out-File -FilePath $logfile -Append
-                }
-            }
+            $vmstatus.ExtensionsText | Out-File -FilePath $logfile -Append
         }
     }
 }
