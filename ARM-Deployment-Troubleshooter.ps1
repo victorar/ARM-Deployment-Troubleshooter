@@ -100,7 +100,7 @@ if ($faileddeployments.Count -ge 1)
             Write-Host -ForegroundColor Green "Getting details for vm" $vmstatus.Name 
             $vmstatus = Get-AzureRmVM -Status -ResourceGroupName $ResourceGroupName -Name $vmop.Properties.TargetResource.ResourceName 
             logheader ("VM status for VM" + $vmstatus.Name) $logfile
-            $vmstatus.StatusText| Out-File -FilePath $logfile -Append
+            $vmstatus.StatusesText| Out-File -FilePath $logfile -Append
 
             Write-Host -ForegroundColor Green "Getting VM Agent Status for VM" $vmstatus.Name
             logheader ("VM Agent status for VM" + $vmstatus.Name) $logfile
