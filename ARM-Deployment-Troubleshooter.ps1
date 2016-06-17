@@ -63,8 +63,11 @@ if ($faileddeployments.Count -ge 1)
         Write-Host -ForegroundColor Green Getting deploymjent informaion for deployment $deployment.DeploymentName
         if ($deployment.TemplateLink -ne $null)
         {
-            logheader "Template Link Information" $logfile 
+            logheader "Template Link Information" $logfile
             $deployment.TemplateLink | ConvertTo-Json | Out-File -FilePath $logfile -Append
+            logheader "Template Content" $logfile
+            $template = Invoke-WebRequest -Uri $deployment.TemplateLink.Uri
+            $template.Content | Out-File -FilePath $logfile -Append
         } 
 
         #Deploymnet parameters
@@ -82,7 +85,7 @@ if ($faileddeployments.Count -ge 1)
         $operations = Get-AzureRmResourceGroupDeploymentOperation -DeploymentName $deployment.DeploymentName -ResourceGroupName $ResourceGroupName
         Write-Host -ForegroundColor Green "Getting deploymnet operations for deploymnet" $deployment.DeploymentName
         logheader "Deployment Operations" $logfile 
-        $operations | ConvertTo-Json -Depth 3| Out-File -FilePath $logfile -Append
+        $operations | ConvertTo-Json -Depth 3 | Out-File -FilePath $logfile -Append
 
         #All resources in the group
         Write-Host -ForegroundColor Green "Getting Additional information all resources in $ResourceGroupName"
