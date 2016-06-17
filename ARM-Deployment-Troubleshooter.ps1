@@ -82,7 +82,7 @@ if ($faileddeployments.Count -ge 1)
         $operations = Get-AzureRmResourceGroupDeploymentOperation -DeploymentName $deployment.DeploymentName -ResourceGroupName $ResourceGroupName
         Write-Host -ForegroundColor Green "Getting deploymnet operations for deploymnet" $deployment.DeploymentName
         logheader "Deployment Operations" $logfile 
-        $operations | ConvertTo-Json | Out-File -FilePath $logfile -Append
+        $operations | ConvertTo-Json -Depth 3| Out-File -FilePath $logfile -Append
 
         #All resources in the group
         Write-Host -ForegroundColor Green "Getting Additional information all resources in $ResourceGroupName"
@@ -91,7 +91,7 @@ if ($faileddeployments.Count -ge 1)
         foreach ($resource in $resources)
         {
             $resource |Out-File -FilePath $logfile -Append
-            Get-AzureRmResource -ResourceId $resource.ResourceId | convertto-json | Out-File -FilePath $logfile -Append
+            Get-AzureRmResource -ResourceId $resource.ResourceId | convertto-json -Depth 3 | Out-File -FilePath $logfile -Append
         }
 
         #Additional information for VMs and Extensions
