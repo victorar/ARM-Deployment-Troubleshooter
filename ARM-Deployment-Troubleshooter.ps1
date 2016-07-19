@@ -53,7 +53,7 @@ if ($faileddeployments.Count -ge 1)
         #set up a log file
         $name = $deployment.DeploymentName
         $logfile="$ResourceGroupName-$name.log"
-        Write-Host -ForegroundColor White "Writing deploymnet log file to $logfile" 
+        Write-Host -ForegroundColor White "Writing deploymentt log file to $logfile" 
         Remove-Item $logfile -Confirm -ErrorAction SilentlyContinue
 
         #write a header
