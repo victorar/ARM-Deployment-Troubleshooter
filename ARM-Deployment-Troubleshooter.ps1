@@ -47,20 +47,20 @@ $deployments | ft -Property DeploymentName,ProvisioningState,Mode,Timestamp
 $faileddeployments = $deployments #| where {$_.ProvisioningState -ne 'Succeeded'}
 if ($faileddeployments.Count -ge 1)
 {
-    Write-Host -ForegroundColor Green 'Logging failed deploymnets'
+    Write-Host -ForegroundColor Green 'Logging failed deployments'
     foreach ($deployment in $faileddeployments)
     {
         #set up a log file
         $name = $deployment.DeploymentName
         $logfile="$ResourceGroupName-$name.log"
-        Write-Host -ForegroundColor White "Writing deploymentt log file to $logfile" 
+        Write-Host -ForegroundColor White "Writing deployment log file to $logfile" 
         Remove-Item $logfile -Confirm -ErrorAction SilentlyContinue
 
         #write a header
         logheader "Deployment details for deployment $name" $logfile
 
         #Template link if available - not available if deployed via portal
-        Write-Host -ForegroundColor Green Getting deploymjent informaion for deployment $deployment.DeploymentName
+        Write-Host -ForegroundColor Green Getting deployment informaion for deployment $deployment.DeploymentName
         if ($deployment.TemplateLink -ne $null)
         {
             logheader "Template Link Information" $logfile
@@ -70,7 +70,7 @@ if ($faileddeployments.Count -ge 1)
             $template.Content | Out-File -FilePath $logfile -Append
         } 
 
-        #Deploymnet parameters
+        #Deployment parameters
         logheader "Depployment Paramaters" $logfile 
         $deployment.Parameters | ConvertTo-Json | Out-File -FilePath $logfile -Append
         
@@ -83,7 +83,7 @@ if ($faileddeployments.Count -ge 1)
 
         #deployment operations
         $operations = Get-AzureRmResourceGroupDeploymentOperation -DeploymentName $deployment.DeploymentName -ResourceGroupName $ResourceGroupName
-        Write-Host -ForegroundColor Green "Getting deploymnet operations for deploymnet" $deployment.DeploymentName
+        Write-Host -ForegroundColor Green "Getting deployment operations for deployment" $deployment.DeploymentName
         logheader "Deployment Operations" $logfile 
         $operations | ConvertTo-Json -Depth 3 | Out-File -FilePath $logfile -Append
 
